@@ -1,6 +1,4 @@
 classdef MotorHardware < handle
-    %MOTORHARDWARE Summary of this class goes here
-    %   Detailed explanation goes here
 
     properties
         motorID,
@@ -10,8 +8,14 @@ classdef MotorHardware < handle
     end
 
     properties(Constant)
-        ADDR_PRO_TORQUE_ENABLE      = 64;           % control table address
         PROTOCOL_VERSION            = 2.0;          % comm protocol version
+        ADDR_PRO_GOAL_POSITION      = 116;
+        ADDR_PRO_PRESENT_POSITION   = 132;
+        ADDR_PRO_TORQUE_ENABLE      = 64;           % control table address
+        ADDR_PRO_PROFILE_ACCELERATION = 108;
+        ADDR_PRO_PROFILE_VELOCITY     = 112;
+        LEN_PRO_GOAL_POSITION       = 4;
+        LEN_PRO_PRESENT_POSITION    = 4;
         TORQUE_ENABLE               = 1;            % Value for enabling the torque
         TORQUE_DISABLE              = 0;            % Value for disabling the torque
         COMM_SUCCESS                = 0;            % Communication Success result value
@@ -47,7 +51,42 @@ classdef MotorHardware < handle
             end
         end
 
-        
+        function setVelocity(obj, velocity)
+            write4ByteTxRx(obj.portNum, obj.PROTOCOL_VERSION, obj.motorID, obj.ADDR_PRO_PROFILE_VELOCITY, int32(velocity));
+        end
+
+        function setAcceleration(obj, acceleration)
+            write4ByteTxRx(obj.portNum, obj.PROTOCOL_VERSION, obj.motorID, obj.ADDR_PRO_PROFILE_ACCELERATION, int32(acceleration));
+        end
+
+        function setGoalPosition(obj, pos)
+            result = groupSyncWriteAddParam(obj.groupwriteNum, obj.motorID, typecast(int32(pos), 'uint32'), obj.LEN_PRO_GOAL_POSITION);
+            if result ~= true
+                fprintf('[ID:%03d] groupSyncWrite addparam failed', obj.motorID);
+                return;
+            end
+        end
+
+        function pos = getCurrentPosition(obj)
+            isAvailable = groupSyncReadIsAvailable( ...
+                obj.groupreadNum, ...
+                obj.motorID, ...
+                obj.ADDR_PRO_PRESENT_POSITION, ...
+                obj.LEN_PRO_PRESENT_POSITION ...
+            );
+            if isAvailable ~= true
+              fprintf('[ID:%03d] groupSyncRead getdata failed', obj.motorID);
+              pos = -1;
+              return;
+            end
+
+            pos = groupSyncReadGetData( ...
+                obj.groupreadNum, ...
+                obj.motorID, ...
+                obj.ADDR_PRO_PRESENT_POSITION, ...
+                obj.LEN_PRO_PRESENT_POSITION ...
+            );
+        end
     end
 
     methods (Access = private)

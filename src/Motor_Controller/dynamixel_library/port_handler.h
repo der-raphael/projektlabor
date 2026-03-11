@@ -47,8 +47,8 @@
 
 static const int DEFAULT_BAUDRATE = 57600;
 
-extern int     g_used_port_num;
-extern uint8_t *g_is_using;
+//extern int     g_used_port_num;   // auskommentiert von Desi, um Warnung zu unterdrücken
+//extern uint8_t *g_is_using;       // auskommentiert von Desi, um Warnung zu unterdrücken
 
 WINDECLSPEC int     portHandler             (const char *port_name);
 
