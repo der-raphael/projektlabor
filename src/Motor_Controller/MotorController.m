@@ -2,8 +2,10 @@ classdef MotorController < handle
     properties
         DEVICENAME
         BAUDRATE
-        lib_name = ''
+        lib_name
         portNum
+        groupWriteNum
+        groupReadNum
         motor1
         motor2
         motor3
@@ -15,7 +17,6 @@ classdef MotorController < handle
             obj.DEVICENAME = DEVICENAME;
             obj.BAUDRATE = BAUDRATE;
 
-            addpath('./dynamixel_library');
 
             if strcmp(computer, 'PCWIN')
               lib_name = 'dxl_x86_c';
@@ -49,17 +50,27 @@ classdef MotorController < handle
             packetHandler();
             
             % Initialize Groupsyncwrite Structs
-            groupwrite_num = groupSyncWrite(obj.portNum, 2.0, 116, 4);
+            obj.groupWriteNum = groupSyncWrite( ...
+                obj.portNum, ...
+                MotorHardware.PROTOCOL_VERSION, ...
+                MotorHardware.ADDR_PRO_GOAL_POSITION, ...
+                MotorHardware.LEN_PRO_GOAL_POSITION ...
+            );
             
             % Initialize Groupsyncread Structs for Present Position
-            groupread_num = groupSyncRead(obj.portNum, 2.0, 132, 4);
+            obj.groupReadNum = groupSyncRead( ...
+                obj.portNum, ...
+                MotorHardware.PROTOCOL_VERSION, ...
+                MotorHardware.ADDR_PRO_PRESENT_POSITION, ...
+                MotorHardware.LEN_PRO_PRESENT_POSITION ...
+            );
 
             obj.openPort()
             obj.setBaudrate()
 
-            obj.motor1 = MotorHardware(ID1, obj.portNum, groupread_num, groupwrite_num);
-            obj.motor2 = MotorHardware(ID2, obj.portNum, groupread_num, groupwrite_num);
-            obj.motor3 = MotorHardware(ID3, obj.portNum, groupread_num, groupwrite_num);
+            obj.motor1 = MotorHardware(ID1, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
+            obj.motor2 = MotorHardware(ID2, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
+            obj.motor3 = MotorHardware(ID3, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
 
             % Create the map: keys are motor IDs, values are motor objects
             keys = [obj.motor1.motorID, obj.motor2.motorID, obj.motor3.motorID];
@@ -68,18 +79,84 @@ classdef MotorController < handle
         end
 
         function enableTorque(obj, motorID)
-            motor = obj.motorsMap(motorID);
-            motor.enableTorque();
+            if (nargin == 2)
+                motor = obj.motorsMap(motorID);
+                motor.enableTorque();
+            else
+                obj.motor1.enableTorque();
+                obj.motor2.enableTorque();
+                obj.motor3.enableTorque();
+            end
         end
 
         function disableTorque(obj, motorID)
-            motor = obj.motorsMap(motorID);
-            motor.disableTorque();
+            if (nargin == 2)
+                motor = obj.motorsMap(motorID);
+                motor.disableTorque();
+            else
+                obj.motor1.disableTorque();
+                obj.motor2.disableTorque();
+                obj.motor3.disableTorque();
+            end
+        end
+
+        function setVelocity(obj, velocity, motorID)
+            if (nargin == 3)
+                motor = obj.motorsMap(motorID);
+                motor.setVelocity(velocity);
+            else
+                obj.motor1.setVelocity(velocity)
+                obj.motor2.setVelocity(velocity)
+                obj.motor3.setVelocity(velocity);
+            end
+        end
+
+        function setAcceleration(obj, acceleration, motorID)
+            if (nargin == 3)
+                motor = obj.motorsMap(motorID);
+                motor.setAcceleration(acceleration);
+            else
+                obj.motor1.setAcceleration(acceleration);
+                obj.motor2.setAcceleration(acceleration);
+                obj.motor3.setAcceleration(acceleration);
+            end
         end
 
         function closeConnection(obj)
             closePort(obj.portNum);
             unloadlibrary(obj.lib_name);
+        end
+
+        function [pos1, pos2, pos3] = getCurrentPositions(obj)
+            % Syncread present position
+            groupSyncReadTxRxPacket(obj.groupReadNum);
+            if getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION) ~= MotorHardware.COMM_SUCCESS
+                printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
+            end
+    
+            result = getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION);
+            if result ~= MotorHardware.COMM_SUCCESS
+                fprintf('%s\n', getTxRxResult(MotorHardware.PROTOCOL_VERSION, result));
+            end
+
+            pos1 = obj.motor1.getCurrentPosition();
+            pos2 = obj.motor2.getCurrentPosition();
+            pos3 = obj.motor3.getCurrentPosition();
+        end
+
+        function writePositions(obj, pos1, pos2, pos3)
+            if (pos1 > 0); obj.motor1.setGoalPosition(pos1); end
+            if (pos2 > 0); obj.motor2.setGoalPosition(pos2); end
+            if (pos3 > 0); obj.motor3.setGoalPosition(pos3); end
+
+             % Syncwrite goal position
+            groupSyncWriteTxPacket(obj.groupWriteNum);
+            % if getLastTxRxResult(port_num, PROTOCOL_VERSION) ~= COMM_SUCCESS
+            %     printTxRxResult(PROTOCOL_VERSION, getLastTxRxResult(port_num, PROTOCOL_VERSION));
+            % end
+        
+            % Clear syncwrite parameter storage
+            groupSyncWriteClearParam(obj.groupWriteNum);
         end
     end
 

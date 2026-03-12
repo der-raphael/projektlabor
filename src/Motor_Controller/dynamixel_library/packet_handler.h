@@ -79,7 +79,7 @@ typedef struct
   uint8_t     *broadcast_ping_id_list;
 }PacketData;
 
-extern PacketData *packetData;
+//extern PacketData *packetData;       // auskommentiert von Desi, um Warnung zu unterdrücken
 
 WINDECLSPEC void        packetHandler       ();
 
