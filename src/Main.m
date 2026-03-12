@@ -9,13 +9,21 @@ MOTOR_ID1           = 10;
 MOTOR_ID2           = 11;
 MOTOR_ID3           = 12;
 
+MIN_SPEED = 1;
+MAX_SPEED = 5;
+SPEED_STEPS = [50, 100, 200, 400, 500];
+ACCELERATION_STEPS = [5, 10, 20, 40, 50];
+currentSpeed = 4;
+
+isSpeedButtonPressed = 0;
+prevIsSpeedButtonPressed = 2;
 
 motorController = MotorController(DEVICENAME, BAUDRATE, MOTOR_ID1, MOTOR_ID2, MOTOR_ID3);
 
 try    
     motorController.enableTorque();
-    motorController.setVelocity(400);
-    motorController.setAcceleration(40);
+    motorController.setVelocity(SPEED_STEPS(currentSpeed));
+    motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
     
     [p1, p2, p3] = motorController.getCurrentPositions();
     disp([p1 p2 p3])
@@ -24,7 +32,30 @@ try
 
     while(true)
         controller.update()
-        %fprintf('X: %4.3f Y: %4.3f Z: %4.3f\n', controller.axis_x(), controller.axis_y(), controller.axis_z())
+
+        speedButtonState = controller.axis_other();
+        disp(speedButtonState);
+        if (speedButtonState < -0.8)
+            isSpeedButtonPressed = -1;
+        elseif (speedButtonState > 0.8)
+            isSpeedButtonPressed = 1;
+        else
+            isSpeedButtonPressed = 0;
+        end
+
+        if (isSpeedButtonPressed ~= prevIsSpeedButtonPressed)
+            if (isSpeedButtonPressed == 1)
+                currentSpeed = min(currentSpeed + 1, MAX_SPEED);
+            elseif (isSpeedButtonPressed == -1)
+                currentSpeed = max(currentSpeed - 1, MIN_SPEED);
+            end
+            motorController.setVelocity(SPEED_STEPS(currentSpeed));
+            motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
+            prevIsSpeedButtonPressed = isSpeedButtonPressed;
+            disp("Current speed: " + currentSpeed);
+        end
+
+
 
         motorValue = (2000 - 800) * (1 - controller.axis_z()) + 800;
         motorController.writePositions(motorValue, motorValue, motorValue);
@@ -60,7 +91,7 @@ catch ME
 end
 
 motorController.writePositions(1800, 1800, 1800);
-pause(0.5);
+pause(2);
 
 motorController.disableTorque();
 motorController.closeConnection();
