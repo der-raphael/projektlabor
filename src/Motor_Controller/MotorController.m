@@ -10,6 +10,8 @@ classdef MotorController < handle
         motor2
         motor3
         motorsMap
+
+        alphaShapeBoundary
     end
 
     methods
@@ -76,6 +78,9 @@ classdef MotorController < handle
             keys = [obj.motor1.motorID, obj.motor2.motorID, obj.motor3.motorID];
             values = {obj.motor1, obj.motor2, obj.motor3};
             obj.motorsMap = containers.Map(keys, values);
+
+            alphaShape = load('AlphaShape_Boundary.mat');
+            obj.alphaShapeBoundary = alphaShape.shp;
         end
 
         function enableTorque(obj, motorID)
@@ -144,7 +149,12 @@ classdef MotorController < handle
             pos3 = obj.motor3.getCurrentPosition();
         end
 
-        function writePositions(obj, pos1, pos2, pos3)
+        function success = writePositions(obj, pos1, pos2, pos3)
+            if (~inShape(obj.alphaShapeBoundary, pos1, pos2, pos3))
+                success = false;
+                return;
+            end
+
             if (pos1 > 0); obj.motor1.setGoalPosition(pos1); end
             if (pos2 > 0); obj.motor2.setGoalPosition(pos2); end
             if (pos3 > 0); obj.motor3.setGoalPosition(pos3); end
@@ -157,6 +167,7 @@ classdef MotorController < handle
         
             % Clear syncwrite parameter storage
             groupSyncWriteClearParam(obj.groupWriteNum);
+            success = true;
         end
     end
 

@@ -18,6 +18,21 @@ currentSpeed = 4;
 isSpeedButtonPressed = 0;
 prevIsSpeedButtonPressed = 2;
 
+prevGoalX = 0;
+prevGoalY = 0;
+prevGoalZ = 0;
+goalX = 1500;
+goalY = 1500;
+goalZ = 1500;
+INC_XY = 20;
+
+theta1 = 1200;
+theta2 = 1200;
+theta3 = 1200;
+prevTheta1 = 1200;
+prevTheta2 = 1200;
+prevTheta3 = 1200;
+
 motorController = MotorController(DEVICENAME, BAUDRATE, MOTOR_ID1, MOTOR_ID2, MOTOR_ID3);
 
 try    
@@ -34,7 +49,6 @@ try
         controller.update()
 
         speedButtonState = controller.axis_other();
-        disp(speedButtonState);
         if (speedButtonState < -0.8)
             isSpeedButtonPressed = -1;
         elseif (speedButtonState > 0.8)
@@ -54,11 +68,33 @@ try
             prevIsSpeedButtonPressed = isSpeedButtonPressed;
             disp("Current speed: " + currentSpeed);
         end
+        
+        dx = controller.axis_x();
+        dy = controller.axis_y();
+        dz = (controller.axis_z());
 
+        incXY = INC_XY;
+        incZ = 20;
 
+        theta1 = theta1 + dx*incXY + dz*incZ;
+        theta2 = theta2 - dx*incXY/2 + dy*incXY + dz*incZ;
+        theta3 = theta3 - dx*incXY/2 - dy*incXY + dz*incZ;
 
-        motorValue = (2000 - 800) * (1 - controller.axis_z()) + 800;
-        motorController.writePositions(motorValue, motorValue, motorValue);
+        if (controller.F2())
+            theta1 = 1500;
+            theta2 = 1500;
+            theta3 = 1500;
+        end
+
+        if (~motorController.writePositions(theta1, theta2, theta3))
+            theta1 = prevTheta1;
+            theta2 = prevTheta2;
+            theta3 = prevTheta3;
+        else
+            prevTheta1 = theta1;
+            prevTheta2 = theta2;
+            prevTheta3 = theta3;
+        end
 
         if (controller.B5())
             break;
