@@ -4,10 +4,26 @@ data = readmatrix('deltarobot_curve3.csv');
 data(data(:,1) > 2500 | data(:,2) > 2500 | data(:,3) > 2500, :) = [];
 % data(2:2:end, :) = [];
 
+v = [3000 3000 3000];
+
+% Abstand zur Geraden
+dist = vecnorm(cross(data, repmat(v,size(data,1),1), 2), 2, 2) / norm(v);
+
+% Projektion auf die Geradenrichtung
+t = dot(data, repmat(v,size(data,1),1), 2) / dot(v,v) * 3000;
+
+% Punkte im Bereich der beiden Ebenen
+betweenPlanes = (t >= 1000) & (t <= 2000);
+
+% löschen nur wenn beide Bedingungen erfüllt sind
+data(dist < 250 & betweenPlanes, :) = [];
+
 % Spalten extrahieren
 x = data(:,1);
 y = data(:,2);
 z = data(:,3);
+
+
 
 
 %------- ALPHASHAPE 3D Boundary ------
@@ -37,7 +53,7 @@ z = data(:,3);
 %------- ALPHASHAPE ------
 % AlphaShape mit Alpha = 10 erzeugen
 shp = alphaShape(x,y,z);
-alpha_crit = criticalAlpha(shp, 'one-region');
+alpha_crit = criticalAlpha(shp, 'one-region') * 1.5
 shp.Alpha = alpha_crit;
 
 % Neue Figur
@@ -60,6 +76,13 @@ zlabel('z')
 axis equal
 grid on
 title('Alpha Shape der Punktwolke')
+
+
+% LIMIT_MIN = 800;
+% LIMIT_MAX = 2000;
+% xlim([LIMIT_MIN LIMIT_MAX])
+% ylim([LIMIT_MIN LIMIT_MAX])
+% zlim([LIMIT_MIN LIMIT_MAX])
 
 view(3)
 

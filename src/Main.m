@@ -10,9 +10,9 @@ MOTOR_ID2           = 11;
 MOTOR_ID3           = 12;
 
 MIN_SPEED = 1;
-MAX_SPEED = 5;
-SPEED_STEPS = [50, 100, 200, 400, 500];
-ACCELERATION_STEPS = [5, 10, 20, 40, 50];
+MAX_SPEED = 6;
+SPEED_STEPS = [50, 100, 200, 400, 500, 5000];
+ACCELERATION_STEPS = [5, 10, 20, 40, 50, 500];
 currentSpeed = 4;
 
 isSpeedButtonPressed = 0;
@@ -48,37 +48,31 @@ try
     while(true)
         controller.update()
 
+        % --------------- SPEED CONTROLS ---------------
         speedButtonState = controller.axis_other();
-        if (speedButtonState < -0.8)
-            isSpeedButtonPressed = -1;
-        elseif (speedButtonState > 0.8)
-            isSpeedButtonPressed = 1;
-        else
-            isSpeedButtonPressed = 0;
-        end
+        isSpeedButtonPressed = (speedButtonState > 0.8) - (speedButtonState < -0.8);
 
         if (isSpeedButtonPressed ~= prevIsSpeedButtonPressed)
-            if (isSpeedButtonPressed == 1)
-                currentSpeed = min(currentSpeed + 1, MAX_SPEED);
-            elseif (isSpeedButtonPressed == -1)
-                currentSpeed = max(currentSpeed - 1, MIN_SPEED);
+            if (isSpeedButtonPressed ~= 0)
+                currentSpeed = min(max(currentSpeed + isSpeedButtonPressed, MIN_SPEED), MAX_SPEED);
+                motorController.setVelocity(SPEED_STEPS(currentSpeed));
+                motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
+                disp("Set speed to " + currentSpeed);
             end
-            motorController.setVelocity(SPEED_STEPS(currentSpeed));
-            motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
+            
             prevIsSpeedButtonPressed = isSpeedButtonPressed;
-            disp("Current speed: " + currentSpeed);
         end
         
-        dx = controller.axis_x();
-        dy = controller.axis_y();
-        dz = (controller.axis_z());
+        dy = controller.axis_x();
+        dx = controller.axis_y();
+        dz = controller.axis_z();
 
         incXY = INC_XY;
         incZ = 20;
 
-        theta1 = theta1 + dx*incXY + dz*incZ;
-        theta2 = theta2 - dx*incXY/2 + dy*incXY + dz*incZ;
-        theta3 = theta3 - dx*incXY/2 - dy*incXY + dz*incZ;
+        theta1 = theta1 - dx*incXY + dz*incZ;
+        theta2 = theta2 + dx*incXY/2 + dy*incXY + dz*incZ;
+        theta3 = theta3 + dx*incXY/2 - dy*incXY + dz*incZ;
 
         if (controller.F2())
             theta1 = 1500;
@@ -87,10 +81,14 @@ try
         end
 
         if (~motorController.writePositions(theta1, theta2, theta3))
+            disp("Invalid move: " + theta1 + " " + theta2 + " " + theta3);
+
             theta1 = prevTheta1;
             theta2 = prevTheta2;
             theta3 = prevTheta3;
         else
+            %disp("Valid move: " + theta1 + " " + theta2 + " " + theta3);
+
             prevTheta1 = theta1;
             prevTheta2 = theta2;
             prevTheta3 = theta3;
@@ -99,27 +97,8 @@ try
         if (controller.B5())
             break;
         end
-        pause(0.02)
+        pause(0.001)
     end
-    
-    %{
-    input('Press ENTER to continue...\n');
-    
-    motorController.writePositions(1650, 1650, 1650);
-    input('Press ENTER to continue...\n');
-    
-    motorController.writePositions(-1, -1, 1250);
-    input('Press ENTER to continue...\n');
-    
-    motorController.writePositions(-1, 1250, -1);
-    input('Press ENTER to continue...\n');
-    
-    motorController.writePositions(1250, -1, -1);
-    input('Press ENTER to continue...\n');
-
-    MotionCircle(motorController);
-    MotionUpDown(motorController);
-    %}
 
 catch ME
     fprintf('Error occurred!\n');
@@ -133,4 +112,4 @@ motorController.disableTorque();
 motorController.closeConnection();
 
 close all;
-clear all;
+clear;

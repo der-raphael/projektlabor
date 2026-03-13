@@ -79,7 +79,7 @@ classdef MotorController < handle
             values = {obj.motor1, obj.motor2, obj.motor3};
             obj.motorsMap = containers.Map(keys, values);
 
-            alphaShape = load('AlphaShape_Boundary.mat');
+            alphaShape = load('AlphaShape_Boundary_V3.mat');
             obj.alphaShapeBoundary = alphaShape.shp;
         end
 
