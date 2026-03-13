@@ -1,7 +1,10 @@
-punkt = [-21.57 2.72 2239.54];
+point_trans = [-21.57 2.72 2239.54];
 
-punktVorRot2 = (matrixRotation2' * punkt')'
+ReversePointTransformation(point_trans);
 
-punktVorRot2(3) = -(punktVorRot2(3) - 3524.1)
-
-punktVorRot1 = (matrixRotation' * punktVorRot2')'
+function point = ReversePointTransformation(point_trans)
+    pointBeforeRot2 = (matrixRotation2' * point_trans')';
+    pointBeforeRot2(3) = -(pointBeforeRot2(3) - 3524.1);
+    pointBeforeRot1 = (matrixRotation' * pointBeforeRot2')';
+    point = pointBeforeRot1;
+end
