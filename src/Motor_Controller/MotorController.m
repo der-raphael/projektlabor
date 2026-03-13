@@ -4,8 +4,8 @@ classdef MotorController < handle
         BAUDRATE
         lib_name
         portNum
-        groupWriteNum
-        groupReadNum
+        groupHandleWrite
+        groupHandleRead
         motor1
         motor2
         motor3
@@ -52,27 +52,27 @@ classdef MotorController < handle
             packetHandler();
             
             % Initialize Groupsyncwrite Structs
-            obj.groupWriteNum = groupSyncWrite( ...
+            obj.groupHandleWrite = groupSyncWrite( ...
                 obj.portNum, ...
                 MotorHardware.PROTOCOL_VERSION, ...
-                MotorHardware.ADDR_PRO_GOAL_POSITION, ...
-                MotorHardware.LEN_PRO_GOAL_POSITION ...
+                MotorHardware.ADDR_GOAL_POSITION, ...
+                MotorHardware.LEN_GOAL_POSITION ...
             );
             
             % Initialize Groupsyncread Structs for Present Position
-            obj.groupReadNum = groupSyncRead( ...
+            obj.groupHandleRead = groupSyncRead( ...
                 obj.portNum, ...
                 MotorHardware.PROTOCOL_VERSION, ...
-                MotorHardware.ADDR_PRO_PRESENT_POSITION, ...
-                MotorHardware.LEN_PRO_PRESENT_POSITION ...
+                MotorHardware.ADDR_PRESENT_POSITION, ...
+                MotorHardware.LEN_PRESENT_POSITION ...
             );
 
             obj.openPort()
             obj.setBaudrate()
 
-            obj.motor1 = MotorHardware(ID1, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
-            obj.motor2 = MotorHardware(ID2, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
-            obj.motor3 = MotorHardware(ID3, obj.portNum, obj.groupReadNum, obj.groupWriteNum);
+            obj.motor1 = MotorHardware(ID1, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
+            obj.motor2 = MotorHardware(ID2, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
+            obj.motor3 = MotorHardware(ID3, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
 
             % Create the map: keys are motor IDs, values are motor objects
             keys = [obj.motor1.motorID, obj.motor2.motorID, obj.motor3.motorID];
@@ -134,7 +134,7 @@ classdef MotorController < handle
 
         function [pos1, pos2, pos3] = getCurrentPositions(obj)
             % Syncread present position
-            groupSyncReadTxRxPacket(obj.groupReadNum);
+            groupSyncReadTxRxPacket(obj.groupHandleRead);
             if getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION) ~= MotorHardware.COMM_SUCCESS
                 printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
             end
@@ -160,13 +160,13 @@ classdef MotorController < handle
             if (pos3 > 0); obj.motor3.setGoalPosition(pos3); end
 
              % Syncwrite goal position
-            groupSyncWriteTxPacket(obj.groupWriteNum);
+            groupSyncWriteTxPacket(obj.groupHandleWrite);
             % if getLastTxRxResult(port_num, PROTOCOL_VERSION) ~= COMM_SUCCESS
             %     printTxRxResult(PROTOCOL_VERSION, getLastTxRxResult(port_num, PROTOCOL_VERSION));
             % end
         
             % Clear syncwrite parameter storage
-            groupSyncWriteClearParam(obj.groupWriteNum);
+            groupSyncWriteClearParam(obj.groupHandleWrite);
             success = true;
         end
     end
