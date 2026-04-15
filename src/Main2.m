@@ -37,9 +37,10 @@ try
     motorController.enableTorque();
     motorController.setVelocity(SPEED_STEPS(currentSpeed));
     motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
+    motorController.setGoalCurrent(100);
     
     [p1, p2, p3] = motorController.getCurrentPositions();
-    disp([p1 p2 p3])
+    %disp([p1 p2 p3])
 
     controller = Controller3D(TFlightHotasOneHardware());
 
@@ -82,7 +83,9 @@ try
         theta2 = theta(2);
         theta3 = theta(3);
 
-        disp(theta)
+        %disp(theta)
+        [i1, i2, i3] = motorController.getPresentCurrents();
+        disp([i1 i2 i3])
 
         if (~motorController.writePositions(theta1, theta2, theta3))
             disp("Invalid move: " + theta1 + " " + theta2 + " " + theta3);

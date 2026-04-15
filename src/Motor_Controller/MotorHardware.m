@@ -3,7 +3,8 @@ classdef MotorHardware < handle
     properties
         motorID,            % the ID of the motor this object is tied to
         portNum,            % the Port Number the U2D2 controller is plugged into
-        groupHandleRead,    % handle used for reading multiple motors at once
+        groupHandleReadPos,    % handle used for reading multiple motor positions at once
+        groupHandleReadCur,    % handle used for reading multiple motor currents at once
         groupHandleWrite    % handle used for writing to multiple motors at once
     end
 
@@ -15,9 +16,12 @@ classdef MotorHardware < handle
         ADDR_TORQUE_ENABLE          = 64;           % address for the torque state
         ADDR_PROFILE_ACCELERATION   = 108;          % address for the velocity
         ADDR_PROFILE_VELOCITY       = 112;          % address for the acceleration
+        ADDR_GOAL_CURRENT           = 102;          % address for the present current value
+        ADDR_PRESENT_CURRENT        = 126;          % address for the present current value
 
         LEN_GOAL_POSITION           = 4;            % length of the goal position data in byte
         LEN_PRESENT_POSITION        = 4;            % length of the present position data in byte
+        LEN_PRESENT_CURRENT         = 2;            % length of the present current data in byte
 
         TORQUE_ENABLE               = 1;            % Value for enabling the torque
         TORQUE_DISABLE              = 0;            % Value for disabling the torque
@@ -26,16 +30,22 @@ classdef MotorHardware < handle
     end
 
     methods
-        function obj = MotorHardware(motorID, portNum, groupHandleRead, groupHandleWrite)
+        function obj = MotorHardware(motorID, portNum, groupHandleReadPos, groupHandleReadCur, groupHandleWrite)
             % Constructor
             obj.motorID = motorID;
             obj.portNum = portNum;
-            obj.groupHandleRead = groupHandleRead;
+            obj.groupHandleReadPos = groupHandleReadPos;
+            obj.groupHandleReadCur = groupHandleReadCur;
             obj.groupHandleWrite = groupHandleWrite;
 
             % Add parameter storage for Dynamixel present position value
-            if groupSyncReadAddParam(obj.groupHandleRead, obj.motorID) ~= true
-              fprintf('[ID:%03d] groupSyncRead addparam failed', obj.motorID);
+            if groupSyncReadAddParam(obj.groupHandleReadPos, obj.motorID) ~= true
+              fprintf('[ID:%03d] groupSyncRead addparam failed for pos', obj.motorID);
+            end
+
+            % Add parameter storage for Dynamixel present current value
+            if groupSyncReadAddParam(obj.groupHandleReadCur, obj.motorID) ~= true
+              fprintf('[ID:%03d] groupSyncRead addparam failed for cur', obj.motorID);
             end
         end
 
@@ -66,6 +76,11 @@ classdef MotorHardware < handle
             write4ByteTxRx(obj.portNum, obj.PROTOCOL_VERSION, obj.motorID, obj.ADDR_PROFILE_ACCELERATION, int32(acceleration));
         end
 
+        function setGoalCurrent(obj, current)
+            % Set the velocity this motor
+            write2ByteTxRx(obj.portNum, obj.PROTOCOL_VERSION, obj.motorID, obj.ADDR_GOAL_CURRENT, int32(current));
+        end
+
         function setGoalPosition(obj, pos)
             result = groupSyncWriteAddParam(obj.groupHandleWrite, obj.motorID, typecast(int32(pos), 'uint32'), obj.LEN_GOAL_POSITION);
             if result ~= true
@@ -76,7 +91,7 @@ classdef MotorHardware < handle
 
         function pos = getCurrentPosition(obj)
             isAvailable = groupSyncReadIsAvailable( ...
-                obj.groupHandleRead, ...
+                obj.groupHandleReadPos, ...
                 obj.motorID, ...
                 obj.ADDR_PRESENT_POSITION, ...
                 obj.LEN_PRESENT_POSITION ...
@@ -88,11 +103,34 @@ classdef MotorHardware < handle
             end
 
             pos = groupSyncReadGetData( ...
-                obj.groupHandleRead, ...
+                obj.groupHandleReadPos, ...
                 obj.motorID, ...
                 obj.ADDR_PRESENT_POSITION, ...
                 obj.LEN_PRESENT_POSITION ...
             );
+        end
+
+        function current = getPresentCurrent(obj)
+            isAvailable = groupSyncReadIsAvailable( ...
+                obj.groupHandleReadCur, ...
+                obj.motorID, ...
+                obj.ADDR_PRESENT_CURRENT, ...
+                obj.LEN_PRESENT_CURRENT ...
+            );
+            if isAvailable ~= true
+              fprintf('[ID:%03d] groupSyncRead getdata failed', obj.motorID);
+              current = -1;
+              return;
+            end
+
+            current = groupSyncReadGetData( ...
+                obj.groupHandleReadCur, ...
+                obj.motorID, ...
+                obj.ADDR_PRESENT_CURRENT, ...
+                obj.LEN_PRESENT_CURRENT ...
+            );
+
+            current = typecast(uint16(current), 'int16');
         end
     end
 

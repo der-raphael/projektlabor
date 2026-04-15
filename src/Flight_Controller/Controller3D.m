@@ -25,7 +25,8 @@ classdef Controller3D < handle
         end
         
         function a = axis_z(obj)
-            a = obj.axes(3);%a = round((-obj.axes(3) + 1) / 2, 2);
+            %a = obj.axes(3);
+            a = round((-obj.axes(3) + 1) / 2, 2);
         end
 
         function a = axis_rotation(obj)

@@ -5,7 +5,8 @@ classdef MotorController < handle
         lib_name
         portNum
         groupHandleWrite
-        groupHandleRead
+        groupHandleReadPos
+        groupHandleReadCur
         motor1
         motor2
         motor3
@@ -60,19 +61,26 @@ classdef MotorController < handle
             );
             
             % Initialize Groupsyncread Structs for Present Position
-            obj.groupHandleRead = groupSyncRead( ...
+            obj.groupHandleReadPos = groupSyncRead( ...
                 obj.portNum, ...
                 MotorHardware.PROTOCOL_VERSION, ...
                 MotorHardware.ADDR_PRESENT_POSITION, ...
                 MotorHardware.LEN_PRESENT_POSITION ...
             );
+            % Initialize Groupsyncread Structs for Present Position
+            obj.groupHandleReadCur = groupSyncRead( ...
+                obj.portNum, ...
+                MotorHardware.PROTOCOL_VERSION, ...
+                MotorHardware.ADDR_PRESENT_CURRENT, ...
+                MotorHardware.LEN_PRESENT_CURRENT...
+            );
 
             obj.openPort()
             obj.setBaudrate()
 
-            obj.motor1 = MotorHardware(ID1, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
-            obj.motor2 = MotorHardware(ID2, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
-            obj.motor3 = MotorHardware(ID3, obj.portNum, obj.groupHandleRead, obj.groupHandleWrite);
+            obj.motor1 = MotorHardware(ID1, obj.portNum, obj.groupHandleReadPos, obj.groupHandleReadCur, obj.groupHandleWrite);
+            obj.motor2 = MotorHardware(ID2, obj.portNum, obj.groupHandleReadPos, obj.groupHandleReadCur, obj.groupHandleWrite);
+            obj.motor3 = MotorHardware(ID3, obj.portNum, obj.groupHandleReadPos, obj.groupHandleReadCur, obj.groupHandleWrite);
 
             % Create the map: keys are motor IDs, values are motor objects
             keys = [obj.motor1.motorID, obj.motor2.motorID, obj.motor3.motorID];
@@ -127,6 +135,17 @@ classdef MotorController < handle
             end
         end
 
+        function setGoalCurrent(obj, current, motorID)
+            if (nargin == 3)
+                motor = obj.motorsMap(motorID);
+                motor.setGoalCurrent(current);
+            else
+                obj.motor1.setGoalCurrent(current)
+                obj.motor2.setGoalCurrent(current)
+                obj.motor3.setGoalCurrent(current);
+            end
+        end
+
         function closeConnection(obj)
             closePort(obj.portNum);
             unloadlibrary(obj.lib_name);
@@ -134,7 +153,7 @@ classdef MotorController < handle
 
         function [pos1, pos2, pos3] = getCurrentPositions(obj)
             % Syncread present position
-            groupSyncReadTxRxPacket(obj.groupHandleRead);
+            groupSyncReadTxRxPacket(obj.groupHandleReadPos);
             if getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION) ~= MotorHardware.COMM_SUCCESS
                 printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
             end
@@ -168,6 +187,28 @@ classdef MotorController < handle
             % Clear syncwrite parameter storage
             groupSyncWriteClearParam(obj.groupHandleWrite);
             success = true;
+        end
+
+        function [cur1, cur2, cur3] = getPresentCurrents(obj)
+            % Syncread present position
+            groupSyncReadTxRxPacket(obj.groupHandleReadCur);
+            if getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION) ~= MotorHardware.COMM_SUCCESS
+                %printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
+                disp("Failed reading current data. Continuing...")
+            end
+    
+            result = getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION);
+            if result ~= MotorHardware.COMM_SUCCESS
+                %fprintf('%s\n', getTxRxResult(MotorHardware.PROTOCOL_VERSION, result));
+                disp("Failed reading current data. Continuing...")
+                cur1 = 0;
+                cur2 = 0;
+                cur3 = 0;
+            else
+                cur1 = obj.motor1.getPresentCurrent();
+                cur2 = obj.motor2.getPresentCurrent();
+                cur3 = obj.motor3.getPresentCurrent();
+            end
         end
     end
 
