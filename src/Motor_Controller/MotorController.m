@@ -155,12 +155,12 @@ classdef MotorController < handle
             % Syncread present position
             groupSyncReadTxRxPacket(obj.groupHandleReadPos);
             if getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION) ~= MotorHardware.COMM_SUCCESS
-                printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
+                %printTxRxResult(MotorHardware.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION));
             end
     
             result = getLastTxRxResult(obj.portNum, MotorHardware.PROTOCOL_VERSION);
             if result ~= MotorHardware.COMM_SUCCESS
-                fprintf('%s\n', getTxRxResult(MotorHardware.PROTOCOL_VERSION, result));
+                %fprintf('%s\n', getTxRxResult(MotorHardware.PROTOCOL_VERSION, result));
             end
 
             pos1 = obj.motor1.getCurrentPosition();

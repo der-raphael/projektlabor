@@ -37,15 +37,16 @@ try
     motorController.enableTorque();
     motorController.setVelocity(SPEED_STEPS(currentSpeed));
     motorController.setAcceleration(ACCELERATION_STEPS(currentSpeed));
-    motorController.setGoalCurrent(100);
-    
-    [p1, p2, p3] = motorController.getCurrentPositions();
-    %disp([p1 p2 p3])
+    motorController.setGoalCurrent(200);
 
     controller = Controller3D(TFlightHotasOneHardware());
 
     while(true)
         controller.update()
+
+        if (controller.B5())
+            break;
+        end
 
         % --------------- SPEED CONTROLS ---------------
         speedButtonState = controller.axis_other();
@@ -66,8 +67,8 @@ try
         dy = -controller.axis_y();
         dz = controller.axis_z();
 
-        goalX = goalX + dx * 20;
-        goalY = goalY + dy * 20;
+        goalX = goalX + dx * 50;
+        goalY = goalY + dy * 50;
         goalZ = dz * PointTransformer.zMaxTrans;
 
         goalZAdjust = -sqrt(goalX^2 + goalY^2) * 0.5;
@@ -83,9 +84,16 @@ try
         theta2 = theta(2);
         theta3 = theta(3);
 
+        [p1, p2, p3] = motorController.getCurrentPositions();
+        distanceToTarget = (theta1 - p1)^2 + (theta2 - p2)^2 + (theta3 - p3)^2;
+        %disp([p1 p2 p3])
+        %disp([theta1 theta2 theta3])
+        %disp("---")
+        %disp(distanceToTarget)
+
         %disp(theta)
-        [i1, i2, i3] = motorController.getPresentCurrents();
-        disp([i1 i2 i3])
+        %[i1, i2, i3] = motorController.getPresentCurrents();
+        %disp([i1 i2 i3])
 
         if (~motorController.writePositions(theta1, theta2, theta3))
             disp("Invalid move: " + theta1 + " " + theta2 + " " + theta3);
@@ -98,10 +106,6 @@ try
             prevGoalY = goalY;
             prevGoalZ = goalZ;
         end
-
-        if (controller.B5())
-            break;
-        end
         pause(0.001)
     end
 
@@ -110,7 +114,7 @@ catch ME
     disp(ME.message);
 end
 
-motorController.writePositions(1800, 1800, 1800);
+motorController.writePositions(1500, 1500, 1500);
 pause(2);
 
 motorController.disableTorque();

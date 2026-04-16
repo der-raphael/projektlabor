@@ -138,7 +138,7 @@ classdef MotorHardware < handle
         function connected = setTorqueState(obj, torqueState)
             write1ByteTxRx(obj.portNum, obj.PROTOCOL_VERSION, obj.motorID, obj.ADDR_TORQUE_ENABLE, torqueState);
             if getLastTxRxResult(obj.portNum, obj.PROTOCOL_VERSION) ~= obj.COMM_SUCCESS
-                printTxRxResult(obj.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, obj.PROTOCOL_VERSION));
+                %printTxRxResult(obj.PROTOCOL_VERSION, getLastTxRxResult(obj.portNum, obj.PROTOCOL_VERSION));
                 connected = false;
             elseif getLastRxPacketError(obj.portNum, obj.PROTOCOL_VERSION) ~= 0
                 printRxPacketError(obj.PROTOCOL_VERSION, getLastRxPacketError(obj.portNum, obj.PROTOCOL_VERSION));
